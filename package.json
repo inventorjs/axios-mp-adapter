@@ -4,7 +4,7 @@
   "description": "axios weapp adaptor",
   "main": "index.js",
   "repository": "git@github.com:sunkeysun/axios-weapp-adaptor.git",
-  "author": "sunkeysun <sunkeysun@tencent.com>",
+  "author": "sunkeysun <sunkeysun@outlook.com>",
   "license": "MIT",
   "devDependencies": {
     "@commitlint/cli": "^16.2.3",
