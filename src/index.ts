@@ -5,7 +5,7 @@
 import axios from 'axios'
 import statuses from 'statuses'
 import qs from 'qs'
-import { type AxiosAdapter, type AxiosResponse, type AxiosRequestConfig, AxiosError } from 'axios'
+import { type AxiosAdapter, type AxiosResponse, type AxiosRequestConfig } from 'axios'
 
 type WxRequestOption = WechatMiniprogram.RequestOption
 type BuildUrlParams = Pick<AxiosRequestConfig, 'baseURL' | 'url' | 'params' | 'paramsSerializer'>
@@ -15,7 +15,7 @@ function defaultParamsSerializer(params: AxiosRequestConfig['params']) {
 }
 
 function buildUrl({ baseURL, url, params, paramsSerializer = defaultParamsSerializer }: BuildUrlParams) {
-    let queryStr = paramsSerializer(params)
+    const queryStr = paramsSerializer(params)
     let fullUrl = `${baseURL}${url}`
     if (!queryStr) return fullUrl
 
@@ -62,7 +62,7 @@ const weappAdapter: AxiosAdapter = function weappAdapter(config) {
             }
         })
 
-        function onCancel(cancel: any) {
+        function onCancel(cancel: unknown) {
             if (!request) return ;
             reject(!cancel || !axios.isCancel(cancel) ? new axios.Cancel('canceled') : cancel)
             request.abort()
