@@ -1,6 +1,6 @@
 {
   "name": "axios-weapp-adapter",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "axios 微信小程序适配器",
   "main": "lib/index.js",
   "repository": "git@github.com:sunkeysun/axios-weapp-adapter.git",
@@ -32,8 +32,12 @@
   },
   "eslintConfig": {
     "parser": "@typescript-eslint/parser",
-    "plugins": ["@typescript-eslint"],
-    "extends": ["plugin:@typescript-eslint/recommended"]
+    "plugins": [
+      "@typescript-eslint"
+    ],
+    "extends": [
+      "plugin:@typescript-eslint/recommended"
+    ]
   },
   "lint-staged": {
     "src/*.ts": "eslint"
