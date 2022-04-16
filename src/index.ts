@@ -2,10 +2,9 @@
  * weapp adapter
  * @author: sunkeysun
  */
-import axios from 'axios'
-import statuses from 'statuses'
 import qs from 'qs'
-import { type AxiosAdapter, type AxiosResponse, type AxiosRequestConfig } from 'axios'
+import statuses from 'statuses'
+import axios, { type AxiosAdapter, type AxiosResponse, type AxiosRequestConfig } from 'axios'
 
 type WxRequestOption = WechatMiniprogram.RequestOption
 type BuildUrlParams = Pick<AxiosRequestConfig, 'baseURL' | 'url' | 'params' | 'paramsSerializer'>
@@ -19,8 +18,25 @@ function buildUrl({ baseURL, url, params, paramsSerializer = defaultParamsSerial
     let fullUrl = `${baseURL}${url}`
     if (!queryStr) return fullUrl
 
-    fullUrl += fullUrl.includes('?') ? `&${queryStr}` : `?${queryStr}`
+    const hashIndex = fullUrl.indexOf('#')
+    let hashStr = ''
+    if (!!~hashIndex) {
+        hashStr = fullUrl.slice(hashIndex)
+        fullUrl = fullUrl.slice(0, hashIndex)
+    }
+    fullUrl += fullUrl.includes('?') ? `&${queryStr}` : `?${queryStr}` + hashStr
     return fullUrl
+}
+
+function createError({ errMsg, config, request }: {
+    errMsg: string
+    config: AxiosRequestConfig
+    request: WechatMiniprogram.RequestTask | null
+}) {
+    const error = new Error(errMsg)
+    Reflect.set(error, 'config', config)
+    Reflect.set(error, 'request', request)
+    return error
 }
 
 const weappAdapter: AxiosAdapter = function weappAdapter(config) {
@@ -29,7 +45,7 @@ const weappAdapter: AxiosAdapter = function weappAdapter(config) {
                 cancelToken, validateStatus, paramsSerializer } = config
         const fullUrl = buildUrl({ baseURL, url, params, paramsSerializer })
         const httpMethod = typeof method === 'string' ? method.toUpperCase() : method
-        const exCancelToken = cancelToken as typeof cancelToken & { subscribe: any; unsubscribe: any }
+        const exCancelToken = cancelToken as typeof cancelToken & { subscribe: unknown; unsubscribe: unknown }
 
         let request: WechatMiniprogram.RequestTask | null = wx.request({
             url: fullUrl,
@@ -54,10 +70,10 @@ const weappAdapter: AxiosAdapter = function weappAdapter(config) {
                 reject(response)
             },
             fail: ({ errMsg }) => {
-                reject(new Error(errMsg))
+                reject(createError({ errMsg, config, request }))
             },
             complete: () => {
-                exCancelToken.unsubscribe(onCancel)
+                typeof exCancelToken.unsubscribe === 'function' && exCancelToken.unsubscribe(onCancel)
                 request = null
             }
         })
@@ -70,7 +86,7 @@ const weappAdapter: AxiosAdapter = function weappAdapter(config) {
         }
 
         if (exCancelToken) {
-            exCancelToken.subscribe(onCancel)
+            typeof exCancelToken.subscribe === 'function' && exCancelToken.subscribe(onCancel)
         }
     })
 }
