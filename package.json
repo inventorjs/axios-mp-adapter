@@ -1,11 +1,14 @@
 {
   "name": "axios-weapp-adapter",
-  "version": "0.0.2",
+  "version": "0.0.1",
   "description": "axios weapp adaptor",
-  "main": "index.js",
+  "main": "lib/index.js",
   "repository": "git@github.com:sunkeysun/axios-weapp-adapter.git",
   "author": "sunkeysun <sunkeysun@outlook.com>",
   "license": "MIT",
+  "scripts": {
+    "build": "tsc"
+  },
   "devDependencies": {
     "@commitlint/cli": "^16.2.3",
     "@commitlint/config-conventional": "^16.2.1",

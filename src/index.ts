@@ -2,6 +2,7 @@
  * weapp adapter
  * @author: sunkeysun
  */
+import axios from 'axios'
 import statuses from 'statuses'
 import qs from 'qs'
 import { type AxiosAdapter, type AxiosResponse, type AxiosRequestConfig, AxiosError } from 'axios'
@@ -9,7 +10,11 @@ import { type AxiosAdapter, type AxiosResponse, type AxiosRequestConfig, AxiosEr
 type WxRequestOption = WechatMiniprogram.RequestOption
 type BuildUrlParams = Pick<AxiosRequestConfig, 'baseURL' | 'url' | 'params' | 'paramsSerializer'>
 
-function buildUrl({ baseURL, url, params, paramsSerializer = qs.stringify }: BuildUrlParams) {
+function defaultParamsSerializer(params: AxiosRequestConfig['params']) {
+    return qs.stringify(params, { arrayFormat: 'brackets' })
+}
+
+function buildUrl({ baseURL, url, params, paramsSerializer = defaultParamsSerializer }: BuildUrlParams) {
     let queryStr = paramsSerializer(params)
     let fullUrl = `${baseURL}${url}`
     if (!queryStr) return fullUrl
@@ -20,18 +25,19 @@ function buildUrl({ baseURL, url, params, paramsSerializer = qs.stringify }: Bui
 
 const weappAdapter: AxiosAdapter = function weappAdapter(config) {
     return new Promise((resolve, reject) => {
-        const { baseURL, url, data, headers, params, method, timeout,
-                cancelToken, signal, validateStatus, paramsSerializer } = config
+        const { baseURL, url, data, headers, params, method, timeout, responseType = 'json',
+                cancelToken, validateStatus, paramsSerializer } = config
         const fullUrl = buildUrl({ baseURL, url, params, paramsSerializer })
         const httpMethod = typeof method === 'string' ? method.toUpperCase() : method
+        const exCancelToken = cancelToken as typeof cancelToken & { subscribe: any; unsubscribe: any }
 
-        const request = wx.request({
+        let request: WechatMiniprogram.RequestTask | null = wx.request({
             url: fullUrl,
             data,
-            dataType: 'json',
+            dataType: responseType === 'json' ? 'json' : '其他',
             header: headers,
             method: httpMethod as WxRequestOption['method'],
-            responseType: 'text',
+            responseType: responseType === 'arraybuffer' ? 'arraybuffer' : 'text',
             timeout,
             success: ({ header, data, statusCode }) => {
                 const response: AxiosResponse = {
@@ -42,7 +48,7 @@ const weappAdapter: AxiosAdapter = function weappAdapter(config) {
                     config,
                     request,
                 }
-                if (!validateStatus || validateStatus && !validateStatus(statusCode)) {
+                if (!validateStatus || validateStatus && validateStatus(statusCode)) {
                     resolve(response)
                 }
                 reject(response)
@@ -50,8 +56,22 @@ const weappAdapter: AxiosAdapter = function weappAdapter(config) {
             fail: ({ errMsg }) => {
                 reject(new Error(errMsg))
             },
-            complete: ({ errMsg }) => {}
+            complete: () => {
+                exCancelToken.unsubscribe(onCancel)
+                request = null
+            }
         })
+
+        function onCancel(cancel: any) {
+            if (!request) return ;
+            reject(!cancel || !axios.isCancel(cancel) ? new axios.Cancel('canceled') : cancel)
+            request.abort()
+            request = null
+        }
+
+        if (exCancelToken) {
+            exCancelToken.subscribe(onCancel)
+        }
     })
 }
 
