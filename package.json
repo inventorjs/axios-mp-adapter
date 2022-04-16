@@ -1,13 +1,17 @@
 {
   "name": "axios-weapp-adapter",
   "version": "0.0.1",
-  "description": "axios weapp adaptor",
+  "description": "axios 微信小程序适配器",
   "main": "lib/index.js",
   "repository": "git@github.com:sunkeysun/axios-weapp-adapter.git",
   "author": "sunkeysun <sunkeysun@outlook.com>",
   "license": "MIT",
+  "files": [
+    "./lib"
+  ],
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "lint": "lint-staged --quiet"
   },
   "devDependencies": {
     "@commitlint/cli": "^16.2.3",
@@ -16,18 +20,34 @@
     "@types/qs": "^6.9.7",
     "@types/statuses": "^2.0.0",
     "@types/wechat-miniprogram": "^3.4.1",
+    "@typescript-eslint/eslint-plugin": "^5.19.0",
+    "@typescript-eslint/parser": "^5.19.0",
+    "eslint": "^8.13.0",
     "husky": "^7.0.4",
-    "tslib": "^2.3.1",
+    "lint-staged": "^12.3.8",
     "typescript": "^4.6.3"
   },
   "commitlint": {
     "extends": "@commitlint/config-conventional"
+  },
+  "eslintConfig": {
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+      "@typescript-eslint"
+    ],
+    "extends": [
+      "plugin:@typescript-eslint/recommend"
+    ]
+  },
+  "lint-staged": {
+    "*.ts": "eslint"
   },
   "peerDependencies": {
     "axios": "^0.26.1"
   },
   "dependencies": {
     "qs": "^6.10.3",
-    "statuses": "^2.0.1"
+    "statuses": "^2.0.1",
+    "tslib": "^2.3.1"
   }
 }
