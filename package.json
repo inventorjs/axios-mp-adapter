@@ -1,13 +1,14 @@
 {
   "name": "axios-weapp-adapter",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "axios 微信小程序适配器",
   "main": "lib/index.js",
   "repository": "git@github.com:sunkeysun/axios-weapp-adapter.git",
   "author": "sunkeysun <sunkeysun@outlook.com>",
   "license": "MIT",
+  "types": "lib/index.d.ts",
   "files": [
-    "./lib"
+    "lib/"
   ],
   "scripts": {
     "build": "tsc",
