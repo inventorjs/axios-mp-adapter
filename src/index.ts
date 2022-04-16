@@ -33,27 +33,37 @@ function createError({ errMsg, config, request }: {
     config: AxiosRequestConfig
     request: WechatMiniprogram.RequestTask | null
 }) {
-    const error = new Error(errMsg)
+    const error = new Error(errMsg) as Error & { toJSON: () => unknown } 
     Reflect.set(error, 'config', config)
     Reflect.set(error, 'request', request)
+    error.toJSON = function () {
+        return {
+            message: this.message,
+            stack: this.stack,
+            config,
+        }
+    }
     return error
 }
 
 const weappAdapter: AxiosAdapter = function weappAdapter(config) {
     return new Promise((resolve, reject) => {
-        const { baseURL, url, data, headers, params, method, timeout, responseType = 'json',
-                cancelToken, validateStatus, paramsSerializer } = config
+        const { baseURL, url, data, headers, params, method, timeout,
+                cancelToken = {}, validateStatus, paramsSerializer } = config
         const fullUrl = buildUrl({ baseURL, url, params, paramsSerializer })
         const httpMethod = typeof method === 'string' ? method.toUpperCase() : method
         const exCancelToken = cancelToken as typeof cancelToken & { subscribe: unknown; unsubscribe: unknown }
 
+        // 数据格式抓换使用 axios transform 进行处理，这里默认传输普通字符串
         let request: WechatMiniprogram.RequestTask | null = wx.request({
             url: fullUrl,
             data,
-            dataType: responseType === 'json' ? 'json' : '其他',
+            dataType: '其他',
             header: headers,
             method: httpMethod as WxRequestOption['method'],
-            responseType: responseType === 'arraybuffer' ? 'arraybuffer' : 'text',
+            responseType: 'text',
+            enableHttp2: true,
+            enableQuic: true,
             timeout,
             success: ({ header, data, statusCode }) => {
                 const response: AxiosResponse = {
