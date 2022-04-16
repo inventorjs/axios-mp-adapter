@@ -12,7 +12,8 @@
   ],
   "scripts": {
     "build": "tsc",
-    "lint": "lint-staged --quiet"
+    "lint": "lint-staged --quiet",
+    "prepublish": "yarn build"
   },
   "devDependencies": {
     "@commitlint/cli": "^16.2.3",
