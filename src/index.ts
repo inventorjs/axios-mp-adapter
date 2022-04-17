@@ -5,6 +5,14 @@
 import qs from 'qs'
 import statuses from 'statuses'
 import axios, { type AxiosAdapter, type AxiosResponse, type AxiosRequestConfig } from 'axios'
+import status from 'statuses'
+
+declare module 'axios' {
+    export interface CancelToken {
+        subscribe: (cancel: unknown) => void
+        unsubscribe: (cancel: unknown) => void
+    }
+}
 
 type WxRequestOption = WechatMiniprogram.RequestOption
 type BuildUrlParams = Pick<AxiosRequestConfig, 'baseURL' | 'url' | 'params' | 'paramsSerializer'>
@@ -28,19 +36,27 @@ function buildUrl({ baseURL, url, params, paramsSerializer = defaultParamsSerial
     return fullUrl
 }
 
-function createError({ errMsg, config, request }: {
+function createError({ errMsg, config, request, code, response }: {
     errMsg: string
     config: AxiosRequestConfig
+    code?: number
     request: WechatMiniprogram.RequestTask | null
+    response?: AxiosResponse,
 }) {
     const error = new Error(errMsg) as Error & { toJSON: () => unknown } 
+    !!code && Reflect.set(error, 'code', code)
+    !!response && Reflect.set(error, 'response', response)
     Reflect.set(error, 'config', config)
     Reflect.set(error, 'request', request)
     error.toJSON = function () {
         return {
+            name: this.name,
             message: this.message,
             stack: this.stack,
+            // Axios
             config,
+            status: response?.status,
+            response,
         }
     }
     return error
@@ -49,10 +65,9 @@ function createError({ errMsg, config, request }: {
 const weappAdapter: AxiosAdapter = function weappAdapter(config) {
     return new Promise((resolve, reject) => {
         const { baseURL, url, data, headers, params, method, timeout,
-                cancelToken = {}, validateStatus, paramsSerializer } = config
+                cancelToken, validateStatus, paramsSerializer } = config
         const fullUrl = buildUrl({ baseURL, url, params, paramsSerializer })
         const httpMethod = typeof method === 'string' ? method.toUpperCase() : method
-        const exCancelToken = cancelToken as typeof cancelToken & { subscribe: unknown; unsubscribe: unknown }
 
         // 数据格式抓换使用 axios transform 进行处理，这里默认传输普通字符串
         let request: WechatMiniprogram.RequestTask | null = wx.request({
@@ -77,13 +92,19 @@ const weappAdapter: AxiosAdapter = function weappAdapter(config) {
                 if (!validateStatus || validateStatus && validateStatus(statusCode)) {
                     resolve(response)
                 }
-                reject(response)
+                reject(createError({
+                    errMsg: `Request failed with status code ${statusCode}`,
+                    config,
+                    code: statusCode,
+                    request,
+                    response
+                }))
             },
             fail: ({ errMsg }) => {
                 reject(createError({ errMsg, config, request }))
             },
             complete: () => {
-                typeof exCancelToken.unsubscribe === 'function' && exCancelToken.unsubscribe(onCancel)
+                typeof cancelToken?.unsubscribe === 'function' && cancelToken.unsubscribe(onCancel)
                 request = null
             }
         })
@@ -95,9 +116,7 @@ const weappAdapter: AxiosAdapter = function weappAdapter(config) {
             request = null
         }
 
-        if (exCancelToken) {
-            typeof exCancelToken.subscribe === 'function' && exCancelToken.subscribe(onCancel)
-        }
+        typeof cancelToken?.subscribe === 'function' && cancelToken.subscribe(onCancel)
     })
 }
 
