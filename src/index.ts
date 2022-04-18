@@ -5,7 +5,6 @@
 import qs from 'qs'
 import statuses from 'statuses'
 import axios, { type AxiosAdapter, type AxiosResponse, type AxiosRequestConfig } from 'axios'
-import status from 'statuses'
 
 declare module 'axios' {
     export interface CancelToken {
@@ -21,7 +20,7 @@ function defaultParamsSerializer(params: AxiosRequestConfig['params']) {
     return qs.stringify(params, { arrayFormat: 'brackets' })
 }
 
-function buildUrl({ baseURL, url, params, paramsSerializer = defaultParamsSerializer }: BuildUrlParams) {
+function buildUrl({ baseURL = '', url, params, paramsSerializer = defaultParamsSerializer }: BuildUrlParams) {
     const queryStr = paramsSerializer(params)
     let fullUrl = `${baseURL}${url}`
     if (!queryStr) return fullUrl
