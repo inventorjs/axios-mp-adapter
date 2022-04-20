@@ -2,7 +2,6 @@
  * weapp adapter
  * @author: sunkeysun
  */
-import qs from 'qs'
 import statuses from 'statuses'
 import axios, { type AxiosAdapter, type AxiosResponse, type AxiosRequestConfig } from 'axios'
 
@@ -14,25 +13,10 @@ declare module 'axios' {
 }
 
 type WxRequestOption = WechatMiniprogram.RequestOption
-type BuildUrlParams = Pick<AxiosRequestConfig, 'baseURL' | 'url' | 'params' | 'paramsSerializer'>
+type BuildUrlParams = Pick<AxiosRequestConfig, 'url' | 'params' | 'paramsSerializer'>
 
-function defaultParamsSerializer(params: AxiosRequestConfig['params']) {
-    return qs.stringify(params, { arrayFormat: 'brackets' })
-}
-
-function buildUrl({ baseURL = '', url, params, paramsSerializer = defaultParamsSerializer }: BuildUrlParams) {
-    const queryStr = paramsSerializer(params)
-    let fullUrl = `${baseURL}${url}`
-    if (!queryStr) return fullUrl
-
-    const hashIndex = fullUrl.indexOf('#')
-    let hashStr = ''
-    if (!!~hashIndex) {
-        hashStr = fullUrl.slice(hashIndex)
-        fullUrl = fullUrl.slice(0, hashIndex)
-    }
-    fullUrl += fullUrl.includes('?') ? `&${queryStr}` : `?${queryStr}` + hashStr
-    return fullUrl
+function buildUrl({ url }: BuildUrlParams) {
+  return url ?? ''
 }
 
 function createError({ errMsg, config, request, code, response }: {
@@ -65,7 +49,7 @@ const weappAdapter: AxiosAdapter = function weappAdapter(config) {
     return new Promise((resolve, reject) => {
         const { baseURL, url, data, headers, params, method, timeout,
                 cancelToken, validateStatus, paramsSerializer } = config
-        const fullUrl = buildUrl({ baseURL, url, params, paramsSerializer })
+        const fullUrl = buildUrl({ url: `${baseURL}${url}`, params, paramsSerializer })
         const httpMethod = typeof method === 'string' ? method.toUpperCase() : method
 
         // 数据格式抓换使用 axios transform 进行处理，这里默认传输普通字符串
