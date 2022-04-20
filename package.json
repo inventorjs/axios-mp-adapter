@@ -48,7 +48,6 @@
     "axios": "^0.26.1"
   },
   "dependencies": {
-    "qs": "^6.10.3",
     "statuses": "^2.0.1",
     "tslib": "^2.3.1"
   }
