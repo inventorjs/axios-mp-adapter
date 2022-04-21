@@ -15,7 +15,7 @@ declare module 'axios' {
 type WxRequestOption = WechatMiniprogram.RequestOption
 type BuildUrlParams = Pick<AxiosRequestConfig, 'url' | 'params' | 'paramsSerializer'>
 
-function buildUrl({ url = '', params, paramsSerializer }: BuildUrlParams) {
+function buildURL({ url = '', params, paramsSerializer }: BuildUrlParams) {
     if (!params || !Object.keys(params).length) {
         return url
     }
@@ -76,9 +76,9 @@ function createError({ errMsg, config, request, code, response }: {
 
 const weappAdapter: AxiosAdapter = function weappAdapter(config) {
     return new Promise((resolve, reject) => {
-        const { baseURL, url, data, headers, params, method, timeout,
+        const { baseURL = '', url, data, headers, params, method, timeout,
                 cancelToken, validateStatus, paramsSerializer } = config
-        const fullUrl = buildUrl({ url: `${baseURL}${url}`, params, paramsSerializer })
+        const fullUrl = buildURL({ url: `${baseURL}${url}`, params, paramsSerializer })
         const httpMethod = typeof method === 'string' ? method.toUpperCase() : method
 
         // 数据格式抓换使用 axios transform 进行处理，这里默认传输普通字符串
