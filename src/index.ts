@@ -15,8 +15,37 @@ declare module 'axios' {
 type WxRequestOption = WechatMiniprogram.RequestOption
 type BuildUrlParams = Pick<AxiosRequestConfig, 'url' | 'params' | 'paramsSerializer'>
 
-function buildUrl({ url }: BuildUrlParams) {
-  return url ?? ''
+function buildUrl({ url = '', params, paramsSerializer }: BuildUrlParams) {
+    if (!params || !Object.keys(params).length) {
+        return url
+    }
+    let queryStr = ''
+    if (paramsSerializer) {
+        queryStr = paramsSerializer(params)
+    } else if (params instanceof URLSearchParams) {
+        queryStr = params.toString()
+    } else {
+        const pairs: string[] = []
+        Object.entries(params).forEach(([k, v]) => {
+            if (typeof k === 'symbol' || typeof v === 'symbol') {
+                return
+            }
+            const val = String(v)
+            pairs.push(`${encodeURIComponent(k)}=${encodeURIComponent(val)}`)
+        })
+        queryStr = pairs.join('&')
+    }
+    if (!queryStr) {
+        return url
+    }
+
+    const hashIndex = url.indexOf('#')
+    const urlPath = hashIndex > -1 ? url.slice(0, hashIndex) : url
+    const hashStr = hashIndex > -1 ? url.slice(hashIndex) : ''
+
+    const fullUrl = `${urlPath}${urlPath.includes('?') ? '&' : '?'}${queryStr}${hashStr}`
+
+    return fullUrl
 }
 
 function createError({ errMsg, config, request, code, response }: {
