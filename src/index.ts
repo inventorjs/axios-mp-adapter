@@ -3,133 +3,78 @@
  * @author: sunkeysun
  */
 import statuses from 'statuses'
-import axios, { type AxiosAdapter, type AxiosResponse, type AxiosRequestConfig } from 'axios'
+import axios, { type AxiosAdapter, type AxiosResponse, AxiosError, type CancelToken } from 'axios'
 
-declare module 'axios' {
-    export interface CancelToken {
-        subscribe: (cancel: unknown) => void
-        unsubscribe: (cancel: unknown) => void
-    }
+type SubsCancelToken = CancelToken & {
+  subscribe: (listener: unknown) => void
+  unsubscribe: (listener: unknown) => void
 }
 
 type WxRequestOption = WechatMiniprogram.RequestOption
-type BuildUrlParams = Pick<AxiosRequestConfig, 'url' | 'params' | 'paramsSerializer'>
-
-function buildURL({ url = '', params, paramsSerializer }: BuildUrlParams) {
-    if (!params || !Object.keys(params).length) {
-        return url
-    }
-    let queryStr = ''
-    if (paramsSerializer) {
-        queryStr = paramsSerializer(params)
-    } else if (params instanceof URLSearchParams) {
-        queryStr = params.toString()
-    } else {
-        const pairs: string[] = []
-        Object.entries(params).forEach(([k, v]) => {
-            if (typeof k === 'symbol' || typeof v === 'symbol') {
-                return
-            }
-            const val = String(v)
-            pairs.push(`${encodeURIComponent(k)}=${encodeURIComponent(val)}`)
-        })
-        queryStr = pairs.join('&')
-    }
-    if (!queryStr) {
-        return url
-    }
-
-    const hashIndex = url.indexOf('#')
-    const urlPath = hashIndex > -1 ? url.slice(0, hashIndex) : url
-    const hashStr = hashIndex > -1 ? url.slice(hashIndex) : ''
-
-    const fullUrl = `${urlPath}${urlPath.includes('?') ? '&' : '?'}${queryStr}${hashStr}`
-
-    return fullUrl
-}
-
-function createError({ errMsg, config, request, code, response }: {
-    errMsg: string
-    config: AxiosRequestConfig
-    code?: number
-    request: WechatMiniprogram.RequestTask | null
-    response?: AxiosResponse,
-}) {
-    const error = new Error(errMsg) as Error & { toJSON: () => unknown } 
-    !!code && Reflect.set(error, 'code', code)
-    !!response && Reflect.set(error, 'response', response)
-    Reflect.set(error, 'config', config)
-    Reflect.set(error, 'request', request)
-    error.toJSON = function () {
-        return {
-            name: this.name,
-            message: this.message,
-            stack: this.stack,
-            // Axios
-            config,
-            status: response?.status,
-            response,
-        }
-    }
-    return error
-}
 
 const weappAdapter: AxiosAdapter = function weappAdapter(config) {
-    return new Promise((resolve, reject) => {
-        const { baseURL = '', url, data, headers, params, method, timeout,
-                cancelToken, validateStatus, paramsSerializer } = config
-        const fullUrl = buildURL({ url: `${baseURL}${url}`, params, paramsSerializer })
-        const httpMethod = typeof method === 'string' ? method.toUpperCase() : method
+  return new Promise((resolve, reject) => {
+    const { data, headers, method, timeout, cancelToken, validateStatus } =
+      config
+    const fullUrl = axios.getUri(config)
+    const httpMethod =
+      typeof method === 'string' ? method.toUpperCase() : method
+    const subsCancelToken = cancelToken as SubsCancelToken
 
-        // 数据格式抓换使用 axios transform 进行处理，这里默认传输普通字符串
-        let request: WechatMiniprogram.RequestTask | null = wx.request({
-            url: fullUrl,
-            data,
-            dataType: '其他',
-            header: headers,
-            method: httpMethod as WxRequestOption['method'],
-            responseType: 'text',
-            enableHttp2: true,
-            enableQuic: true,
-            timeout,
-            success: ({ header, data, statusCode }) => {
-                const response: AxiosResponse = {
-                    data,
-                    status: statusCode,
-                    statusText: statuses.message[statusCode] ?? '',
-                    headers: header,
-                    config,
-                    request,
-                }
-                if (!validateStatus || validateStatus && validateStatus(statusCode)) {
-                    resolve(response)
-                }
-                reject(createError({
-                    errMsg: `Request failed with status code ${statusCode}`,
-                    config,
-                    code: statusCode,
-                    request,
-                    response
-                }))
-            },
-            fail: ({ errMsg }) => {
-                reject(createError({ errMsg, config, request }))
-            },
-            complete: () => {
-                typeof cancelToken?.unsubscribe === 'function' && cancelToken.unsubscribe(onCancel)
-                request = null
-            }
-        })
-
-        function onCancel(cancel: unknown) {
-            if (!request) return ;
-            reject(!cancel || !axios.isCancel(cancel) ? new axios.Cancel('canceled') : cancel)
-            request.abort()
-            request = null
+    // 数据格式抓换使用 axios transform 进行处理，这里默认传输普通字符串
+    let request: WechatMiniprogram.RequestTask | null = wx.request({
+      url: fullUrl,
+      data,
+      dataType: '其他',
+      header: headers,
+      method: httpMethod as WxRequestOption['method'],
+      responseType: 'text',
+      enableHttp2: true,
+      enableQuic: true,
+      timeout,
+      success: ({ header, data, statusCode }) => {
+        const response: AxiosResponse = {
+          data,
+          status: statusCode,
+          statusText: statuses.message[statusCode] ?? '',
+          headers: header,
+          config,
+          request,
         }
-
-        typeof cancelToken?.subscribe === 'function' && cancelToken.subscribe(onCancel)
+        if (!validateStatus || (validateStatus && validateStatus(statusCode))) {
+          resolve(response)
+        }
+        reject(
+          new AxiosError(
+            `Request failed with status code ${statusCode}`,
+            String(statusCode),
+            config,
+            request,
+            response,
+          ),
+        )
+      },
+      fail: ({ errMsg }) => {
+        reject(new AxiosError(errMsg, '0', config, request))
+      },
+      complete: () => {
+        subsCancelToken?.unsubscribe?.(onCancel)
+        request = null
+      },
     })
+
+    function onCancel(cancel: unknown) {
+      if (!request) return
+      reject(
+        !cancel || !axios.isCancel(cancel)
+          ? new axios.Cancel('canceled')
+          : cancel,
+      )
+      request.abort()
+      request = null
+    }
+    subsCancelToken?.subscribe?.(onCancel)
+  })
 }
 
 export default weappAdapter
