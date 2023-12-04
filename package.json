@@ -6,6 +6,9 @@
   "repository": "git@github.com:inventorjs/axios-weapp-adapter.git",
   "author": "sunkeysun <sunkeysun@outlook.com>",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "types": "dist/index.d.ts",
   "files": [
     "dist/"
