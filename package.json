@@ -1,6 +1,6 @@
 {
   "name": "@inventorjs/axios-weapp-adapter",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "axios 微信小程序适配器",
   "main": "lib/index.js",
   "repository": "git@github.com:inventorjs/axios-weapp-adapter.git",
