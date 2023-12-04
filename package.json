@@ -45,7 +45,7 @@
     "src/*.ts": "eslint"
   },
   "peerDependencies": {
-    "axios": "^1.4.0"
+    "axios": "^1.6.2"
   },
   "dependencies": {
     "statuses": "^2.0.1",
