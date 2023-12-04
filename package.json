@@ -16,7 +16,7 @@
   "scripts": {
     "build": "tsc",
     "lint": "lint-staged --quiet",
-    "prepublish": "yarn build"
+    "prepublish": "pnpm build"
   },
   "devDependencies": {
     "axios": "^1.4.0",
