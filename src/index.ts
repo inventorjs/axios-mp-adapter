@@ -26,7 +26,7 @@ const weappAdapter: AxiosAdapter = function weappAdapter(config) {
       url: fullUrl,
       data,
       dataType: '其他',
-      header: headers,
+      header: headers?.toJSON?.() ?? {},
       method: httpMethod as WxRequestOption['method'],
       responseType: 'text',
       enableHttp2: true,
