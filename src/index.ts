@@ -43,9 +43,7 @@ const weappAdapter: AxiosAdapter = function weappAdapter(config: InternalAxiosRe
         url: fullUrl,
         data,
         dataType: '其他',
-        header: headers instanceof AxiosHeaders 
-          ? headers.toJSON() 
-          : headers as Record<string, string>,
+        header: headers?.toJSON?.() ?? {},
         method: httpMethod as WxRequestOption['method'],
         responseType: 'text',
         enableHttp2: true,
